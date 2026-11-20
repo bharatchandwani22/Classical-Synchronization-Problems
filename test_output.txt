@@ -1,0 +1,390 @@
+
+==============================================================================
+PRODUCER-CONSUMER [UNSYNCHRONIZED]  buffer=4 producers=2 consumers=2 items/producer=6
+==============================================================================
+[P1] PUT 101 -> slot 0 | buffer=[None, 201, None, None] count=1
+[P2] PUT 201 -> slot 1 | buffer=[None, 201, None, None] count=1
+[C2] GOT 101 <- slot 0 | buffer=[None, 201, None, None] count=-1
+[C1] GOT None <- slot 1 | buffer=[None, 201, None, None] count=-1
+[P1] PUT 102 -> slot 3 | buffer=[None, 201, None, 102] count=0
+[P2] PUT 202 -> slot 2 | buffer=[None, 201, None, 102] count=0
+[C1] GOT 202 <- slot 2 | buffer=[None, 201, None, 102] count=-2
+[C2] GOT None <- slot 2 | buffer=[None, 201, None, 102] count=-1
+[C1] GOT 102 <- slot 3 | buffer=[None, 201, None, None] count=-2
+[P2] PUT 203 -> slot 0 | buffer=[None, 201, None, None] count=-1
+[P1] PUT 103 -> slot 0 | buffer=[None, 201, None, None] count=-1
+[C2] GOT 203 <- slot 0 | buffer=[None, None, None, None] count=-3
+[C1] GOT 201 <- slot 1 | buffer=[None, None, None, None] count=-2
+[P1] PUT 104 -> slot 1 | buffer=[None, 204, None, None] count=-1
+[C2] GOT None <- slot 2 | buffer=[None, 204, None, None] count=-4
+[P2] PUT 204 -> slot 1 | buffer=[None, 204, None, None] count=-1
+[P1] PUT 105 -> slot 2 | buffer=[None, 204, 105, None] count=0
+[C2] GOT None <- slot 3 | buffer=[None, 204, 105, None] count=-2
+[C1] GOT None <- slot 3 | buffer=[None, 204, 105, 106] count=-1
+[P1] PUT 106 -> slot 3 | buffer=[None, 204, 105, 205] count=-1
+[P2] PUT 205 -> slot 3 | buffer=[None, 204, 105, 205] count=0
+[C2] GOT None <- slot 0 | buffer=[None, 204, 105, 205] count=-2
+[C1] GOT 204 <- slot 1 | buffer=[None, None, 105, 205] count=-3
+[P2] PUT 206 -> slot 0 | buffer=[206, None, 105, 205] count=-2
+------------------------------------------------------------------------------
+EXPECTED : 12 distinct items consumed exactly once, 0 empty reads, final count = 0, count never > 4
+ACTUAL   : 6 valid reads, 6 distinct, 6 empty(None) reads, final count = -2, max count = 1
+           lost items = [103, 104, 105, 106, 205, 206]
+           duplicated items = []
+RESULT   : INCORRECT (race condition detected)
+
+==============================================================================
+PRODUCER-CONSUMER [SYNCHRONIZED]  buffer=4 producers=2 consumers=2 items/producer=6
+==============================================================================
+[P1] PUT 101 -> slot 0 | buffer=[101, None, None, None] count=1
+[C2] GOT 101 <- slot 0 | buffer=[None, None, None, None] count=0
+[P1] PUT 102 -> slot 1 | buffer=[None, 102, None, None] count=1
+[C1] GOT 102 <- slot 1 | buffer=[None, None, None, None] count=0
+[P2] PUT 201 -> slot 2 | buffer=[None, None, 201, None] count=1
+[C2] GOT 201 <- slot 2 | buffer=[None, None, None, None] count=0
+[P2] PUT 202 -> slot 3 | buffer=[None, None, None, 202] count=1
+[C2] GOT 202 <- slot 3 | buffer=[None, None, None, None] count=0
+[P1] PUT 103 -> slot 0 | buffer=[103, None, None, None] count=1
+[C2] GOT 103 <- slot 0 | buffer=[None, None, None, None] count=0
+[P2] PUT 203 -> slot 1 | buffer=[None, 203, None, None] count=1
+[C2] GOT 203 <- slot 1 | buffer=[None, None, None, None] count=0
+[P1] PUT 104 -> slot 2 | buffer=[None, None, 104, None] count=1
+[C1] GOT 104 <- slot 2 | buffer=[None, None, None, None] count=0
+[P2] PUT 204 -> slot 3 | buffer=[None, None, None, 204] count=1
+[P1] PUT 105 -> slot 0 | buffer=[105, None, None, 204] count=2
+[C2] GOT 204 <- slot 3 | buffer=[105, None, None, None] count=1
+[P1] PUT 106 -> slot 1 | buffer=[105, 106, None, None] count=2
+[P2] PUT 205 -> slot 2 | buffer=[105, 106, 205, None] count=3
+[C1] GOT 105 <- slot 0 | buffer=[None, 106, 205, None] count=2
+[P2] PUT 206 -> slot 3 | buffer=[None, 106, 205, 206] count=3
+[C1] GOT 106 <- slot 1 | buffer=[None, None, 205, 206] count=2
+[C1] GOT 205 <- slot 2 | buffer=[None, None, None, 206] count=1
+[C1] GOT 206 <- slot 3 | buffer=[None, None, None, None] count=0
+------------------------------------------------------------------------------
+EXPECTED : 12 distinct items consumed exactly once, 0 empty reads, final count = 0, count never > 4
+ACTUAL   : 12 valid reads, 12 distinct, 0 empty(None) reads, final count = 0, max count = 3
+           lost items = []
+           duplicated items = []
+RESULT   : CORRECT
+
+==============================================================================
+READERS-WRITERS [UNSYNCHRONIZED]  readers=4x5 reads, writers=2x5 writes
+==============================================================================
+[R3] read a=0 b=0 consistent | active readers=2 writers=1
+[R4] read a=0 b=0 consistent | active readers=2 writers=2
+[R2] read a=0 b=0 consistent | active readers=4 writers=2
+[R1] read a=0 b=0 consistent | active readers=4 writers=2
+[R4] read a=0 b=0 consistent | active readers=2 writers=2
+[W2] wrote a=1 b=1 | active readers=1 writers=2
+[R3] read a=1 b=1 consistent | active readers=3 writers=1
+[W1] wrote a=1 b=1 | active readers=2 writers=1
+[R2] read a=1 b=1 consistent | active readers=4 writers=2
+[R1] read a=1 b=1 consistent | active readers=4 writers=2
+[R4] read a=1 b=1 consistent | active readers=2 writers=2
+[R3] read a=1 b=1 consistent | active readers=1 writers=2
+[W2] wrote a=2 b=2 | active readers=1 writers=2
+[W1] wrote a=2 b=2 | active readers=4 writers=1
+[R2] read a=2 b=2 consistent | active readers=4 writers=1
+[R3] read a=2 b=2 consistent | active readers=4 writers=2
+[R1] read a=2 b=2 consistent | active readers=4 writers=2
+[R4] read a=2 b=2 consistent | active readers=3 writers=2
+[R2] read a=2 b=2 consistent | active readers=2 writers=2
+[R3] read a=2 b=2 consistent | active readers=3 writers=2
+[W2] wrote a=3 b=3 | active readers=3 writers=2
+[R4] read a=3 b=3 consistent | active readers=3 writers=1
+[W1] wrote a=3 b=3 | active readers=3 writers=1
+[R1] read a=3 b=3 consistent | active readers=2 writers=0
+[R2] read a=3 b=3 consistent | active readers=1 writers=0
+[R1] read a=3 b=3 consistent | active readers=1 writers=2
+[W1] wrote a=4 b=4 | active readers=0 writers=2
+[W2] wrote a=4 b=4 | active readers=0 writers=2
+[W1] wrote a=5 b=5 | active readers=0 writers=2
+[W2] wrote a=5 b=5 | active readers=0 writers=1
+------------------------------------------------------------------------------
+EXPECTED : final a = b = 10, 0 inconsistent reads, 0 reader/writer overlaps
+ACTUAL   : final a = 5, b = 5, inconsistent reads = 0, overlaps = 27
+           max concurrent readers = 4
+           writer wait time: avg = 0.0 ms, max = 0.0 ms
+RESULT   : INCORRECT (race condition detected)
+
+==============================================================================
+READERS-WRITERS [SYNCHRONIZED (reader preference)]  readers=4x5 reads, writers=2x5 writes
+==============================================================================
+[R3] read a=0 b=0 consistent | active readers=2 writers=0
+[R4] read a=0 b=0 consistent | active readers=1 writers=0
+[W2] wrote a=1 b=1 | active readers=0 writers=1
+[W1] wrote a=2 b=2 | active readers=0 writers=1
+[R3] read a=2 b=2 consistent | active readers=4 writers=0
+[R1] read a=2 b=2 consistent | active readers=4 writers=0
+[R2] read a=2 b=2 consistent | active readers=4 writers=0
+[R4] read a=2 b=2 consistent | active readers=4 writers=0
+[W2] wrote a=3 b=3 | active readers=0 writers=1
+[W1] wrote a=4 b=4 | active readers=0 writers=1
+[R4] read a=4 b=4 consistent | active readers=4 writers=0
+[R3] read a=4 b=4 consistent | active readers=4 writers=0
+[R1] read a=4 b=4 consistent | active readers=4 writers=0
+[R2] read a=4 b=4 consistent | active readers=4 writers=0
+[W2] wrote a=5 b=5 | active readers=0 writers=1
+[W1] wrote a=6 b=6 | active readers=0 writers=1
+[R3] read a=6 b=6 consistent | active readers=4 writers=0
+[R4] read a=6 b=6 consistent | active readers=4 writers=0
+[R2] read a=6 b=6 consistent | active readers=4 writers=0
+[R1] read a=6 b=6 consistent | active readers=4 writers=0
+[W2] wrote a=7 b=7 | active readers=0 writers=1
+[W1] wrote a=8 b=8 | active readers=0 writers=1
+[R4] read a=8 b=8 consistent | active readers=4 writers=0
+[R2] read a=8 b=8 consistent | active readers=4 writers=0
+[R3] read a=8 b=8 consistent | active readers=4 writers=0
+[R1] read a=8 b=8 consistent | active readers=4 writers=0
+[W2] wrote a=9 b=9 | active readers=0 writers=1
+[W1] wrote a=10 b=10 | active readers=0 writers=1
+[R2] read a=10 b=10 consistent | active readers=2 writers=0
+[R1] read a=10 b=10 consistent | active readers=2 writers=0
+------------------------------------------------------------------------------
+EXPECTED : final a = b = 10, 0 inconsistent reads, 0 reader/writer overlaps
+ACTUAL   : final a = 10, b = 10, inconsistent reads = 0, overlaps = 0
+           max concurrent readers = 4
+           writer wait time: avg = 6.8 ms, max = 9.6 ms
+RESULT   : CORRECT
+
+==============================================================================
+READERS-WRITERS [SYNCHRONIZED (fair / turnstile)]  readers=4x5 reads, writers=2x5 writes
+==============================================================================
+[R3] read a=0 b=0 consistent | active readers=2 writers=0
+[R4] read a=0 b=0 consistent | active readers=2 writers=0
+[W2] wrote a=1 b=1 | active readers=0 writers=1
+[W1] wrote a=2 b=2 | active readers=0 writers=1
+[R4] read a=2 b=2 consistent | active readers=4 writers=0
+[R2] read a=2 b=2 consistent | active readers=4 writers=0
+[R3] read a=2 b=2 consistent | active readers=4 writers=0
+[R1] read a=2 b=2 consistent | active readers=2 writers=0
+[W2] wrote a=3 b=3 | active readers=0 writers=1
+[W1] wrote a=4 b=4 | active readers=0 writers=1
+[R1] read a=4 b=4 consistent | active readers=4 writers=0
+[R3] read a=4 b=4 consistent | active readers=4 writers=0
+[R4] read a=4 b=4 consistent | active readers=4 writers=0
+[R2] read a=4 b=4 consistent | active readers=1 writers=0
+[W2] wrote a=5 b=5 | active readers=0 writers=1
+[W1] wrote a=6 b=6 | active readers=0 writers=1
+[R3] read a=6 b=6 consistent | active readers=4 writers=0
+[R1] read a=6 b=6 consistent | active readers=4 writers=0
+[R2] read a=6 b=6 consistent | active readers=4 writers=0
+[R4] read a=6 b=6 consistent | active readers=4 writers=0
+[W2] wrote a=7 b=7 | active readers=0 writers=1
+[W1] wrote a=8 b=8 | active readers=0 writers=1
+[R2] read a=8 b=8 consistent | active readers=4 writers=0
+[R3] read a=8 b=8 consistent | active readers=4 writers=0
+[R4] read a=8 b=8 consistent | active readers=4 writers=0
+[R1] read a=8 b=8 consistent | active readers=4 writers=0
+[W2] wrote a=9 b=9 | active readers=0 writers=1
+[W1] wrote a=10 b=10 | active readers=0 writers=1
+[R2] read a=10 b=10 consistent | active readers=2 writers=0
+[R1] read a=10 b=10 consistent | active readers=1 writers=0
+------------------------------------------------------------------------------
+EXPECTED : final a = b = 10, 0 inconsistent reads, 0 reader/writer overlaps
+ACTUAL   : final a = 10, b = 10, inconsistent reads = 0, overlaps = 0
+           max concurrent readers = 4
+           writer wait time: avg = 6.8 ms, max = 9.6 ms
+RESULT   : CORRECT
+
+==============================================================================
+DINING PHILOSOPHERS [UNSYNCHRONIZED (no fork locks)]  philosophers=5, meals each=3
+==============================================================================
+[Phil 0] hungry (meal 1)
+[Phil 0] EATING 1/3 forks(0,1) | fork-state=..... (X=in use) | eating now=[0]
+[Phil 2] hungry (meal 1)
+[Phil 2] EATING 1/3 forks(2,3) | fork-state=..... (X=in use) | eating now=[0, 2]
+[Phil 1] hungry (meal 1)
+[Phil 1] EATING 1/3 forks(1,2) | fork-state=..... (X=in use) | eating now=[0, 1, 2]
+[Phil 3] hungry (meal 1)
+[Phil 3] EATING 1/3 forks(3,4) | fork-state=..... (X=in use) | eating now=[0, 1, 2, 3]
+[Phil 4] hungry (meal 1)
+[Phil 4] EATING 1/3 forks(4,0) | fork-state=..... (X=in use) | eating now=[0, 1, 2, 3, 4]
+[Phil 0] done meal 1, back to thinking
+[Phil 0] hungry (meal 2)
+[Phil 0] EATING 2/3 forks(0,1) | fork-state=..... (X=in use) | eating now=[0, 1, 2, 3, 4]
+[Phil 2] done meal 1, back to thinking
+[Phil 2] hungry (meal 2)
+[Phil 2] EATING 2/3 forks(2,3) | fork-state=..... (X=in use) | eating now=[0, 1, 2, 3, 4]
+[Phil 1] done meal 1, back to thinking
+[Phil 3] done meal 1, back to thinking
+[Phil 4] done meal 1, back to thinking
+[Phil 4] hungry (meal 2)
+[Phil 3] hungry (meal 2)
+[Phil 3] EATING 2/3 forks(3,4) | fork-state=..... (X=in use) | eating now=[0, 2, 3, 4]
+[Phil 4] EATING 2/3 forks(4,0) | fork-state=..... (X=in use) | eating now=[0, 2, 4]
+[Phil 0] done meal 2, back to thinking
+[Phil 2] done meal 2, back to thinking
+[Phil 1] hungry (meal 2)
+[Phil 1] EATING 2/3 forks(1,2) | fork-state=..... (X=in use) | eating now=[1, 3, 4]
+[Phil 2] hungry (meal 3)
+[Phil 2] EATING 3/3 forks(2,3) | fork-state=..... (X=in use) | eating now=[1, 2, 3, 4]
+[Phil 3] done meal 2, back to thinking
+[Phil 4] done meal 2, back to thinking
+[Phil 0] hungry (meal 3)
+[Phil 1] done meal 2, back to thinking
+[Phil 4] hungry (meal 3)
+[Phil 4] EATING 3/3 forks(4,0) | fork-state=..... (X=in use) | eating now=[0, 2, 4]
+[Phil 0] EATING 3/3 forks(0,1) | fork-state=..... (X=in use) | eating now=[0, 2]
+[Phil 3] hungry (meal 3)
+[Phil 3] EATING 3/3 forks(3,4) | fork-state=..... (X=in use) | eating now=[0, 2, 3, 4]
+[Phil 2] done meal 3, back to thinking
+[Phil 1] hungry (meal 3)
+[Phil 1] EATING 3/3 forks(1,2) | fork-state=..... (X=in use) | eating now=[0, 1, 3, 4]
+[Phil 4] done meal 3, back to thinking
+[Phil 0] done meal 3, back to thinking
+[Phil 3] done meal 3, back to thinking
+[Phil 1] done meal 3, back to thinking
+------------------------------------------------------------------------------
+EXPECTED : every philosopher eats 3 meals (15 total), 0 neighbours eating together, no deadlock
+ACTUAL   : meals per philosopher = [3, 3, 3, 3, 3], neighbour conflicts = 11, finished = True
+           max wait for forks = 0.0 ms
+RESULT   : INCORRECT (fork shared by two philosophers)
+
+==============================================================================
+DINING PHILOSOPHERS [NAIVE LEFT-THEN-RIGHT: DEADLOCK DEMO, bounded by timeout]
+==============================================================================
+[Phil 0] picked LEFT fork 0
+[Phil 1] picked LEFT fork 1
+[Phil 2] picked LEFT fork 2
+[Phil 3] picked LEFT fork 3
+[Phil 4] picked LEFT fork 4
+[Phil 4] requests RIGHT fork 0 (held by Phil 0)
+[Phil 3] requests RIGHT fork 4 (held by Phil 4)
+[Phil 0] requests RIGHT fork 1 (held by Phil 1)
+[Phil 2] requests RIGHT fork 3 (held by Phil 3)
+[Phil 1] requests RIGHT fork 2 (held by Phil 2)
+[Phil 3] TIMEOUT -> circular wait detected, releasing left fork 3
+[Phil 2] TIMEOUT -> circular wait detected, releasing left fork 2
+[Phil 1] TIMEOUT -> circular wait detected, releasing left fork 1
+[Phil 0] TIMEOUT -> circular wait detected, releasing left fork 0
+[Phil 4] TIMEOUT -> circular wait detected, releasing left fork 4
+------------------------------------------------------------------------------
+EXPECTED : circular wait -> nobody can proceed without outside help
+ACTUAL   : 5 of 5 philosophers hit the deadlock timeout; outcomes = {0: 'deadlock-timeout', 1: 'deadlock-timeout', 2: 'deadlock-timeout', 3: 'deadlock-timeout', 4: 'deadlock-timeout'}
+RESULT   : deadlock DEMONSTRATED and broken by timeout; program finished = True
+
+==============================================================================
+DINING PHILOSOPHERS [SYNCHRONIZED (resource ordering)]  philosophers=5, meals each=3
+==============================================================================
+[Phil 0] hungry (meal 1)
+[Phil 0] EATING 1/3 forks(0,1) | fork-state=XX... (X=in use) | eating now=[0]
+[Phil 2] hungry (meal 1)
+[Phil 2] EATING 1/3 forks(2,3) | fork-state=XXXX. (X=in use) | eating now=[0, 2]
+[Phil 1] hungry (meal 1)
+[Phil 3] hungry (meal 1)
+[Phil 4] hungry (meal 1)
+[Phil 0] done meal 1, back to thinking
+[Phil 4] EATING 1/3 forks(4,0) | fork-state=XXXXX (X=in use) | eating now=[2, 4]
+[Phil 0] hungry (meal 2)
+[Phil 2] done meal 1, back to thinking
+[Phil 1] EATING 1/3 forks(1,2) | fork-state=XXX.X (X=in use) | eating now=[1, 4]
+[Phil 2] hungry (meal 2)
+[Phil 4] done meal 1, back to thinking
+[Phil 3] EATING 1/3 forks(3,4) | fork-state=.XXXX (X=in use) | eating now=[1, 3]
+[Phil 1] done meal 1, back to thinking
+[Phil 0] EATING 2/3 forks(0,1) | fork-state=XX.XX (X=in use) | eating now=[0, 3]
+[Phil 1] hungry (meal 2)
+[Phil 4] hungry (meal 2)
+[Phil 3] done meal 1, back to thinking
+[Phil 2] EATING 2/3 forks(2,3) | fork-state=XXXX. (X=in use) | eating now=[0, 2]
+[Phil 0] done meal 2, back to thinking
+[Phil 4] EATING 2/3 forks(4,0) | fork-state=XXXXX (X=in use) | eating now=[2, 4]
+[Phil 3] hungry (meal 2)
+[Phil 2] done meal 2, back to thinking
+[Phil 1] EATING 2/3 forks(1,2) | fork-state=XXX.X (X=in use) | eating now=[1, 4]
+[Phil 0] hungry (meal 3)
+[Phil 4] done meal 2, back to thinking
+[Phil 3] EATING 2/3 forks(3,4) | fork-state=.XXXX (X=in use) | eating now=[1, 3]
+[Phil 2] hungry (meal 3)
+[Phil 4] hungry (meal 3)
+[Phil 1] done meal 2, back to thinking
+[Phil 0] EATING 3/3 forks(0,1) | fork-state=XX.XX (X=in use) | eating now=[0, 3]
+[Phil 3] done meal 2, back to thinking
+[Phil 2] EATING 3/3 forks(2,3) | fork-state=XXXX. (X=in use) | eating now=[0, 2]
+[Phil 1] hungry (meal 3)
+[Phil 3] hungry (meal 3)
+[Phil 0] done meal 3, back to thinking
+[Phil 4] EATING 3/3 forks(4,0) | fork-state=XXXXX (X=in use) | eating now=[2, 4]
+[Phil 2] done meal 3, back to thinking
+[Phil 1] EATING 3/3 forks(1,2) | fork-state=XXX.X (X=in use) | eating now=[1, 4]
+[Phil 4] done meal 3, back to thinking
+[Phil 3] EATING 3/3 forks(3,4) | fork-state=.XXXX (X=in use) | eating now=[1, 3]
+[Phil 1] done meal 3, back to thinking
+[Phil 3] done meal 3, back to thinking
+------------------------------------------------------------------------------
+EXPECTED : every philosopher eats 3 meals (15 total), 0 neighbours eating together, no deadlock
+ACTUAL   : meals per philosopher = [3, 3, 3, 3, 3], neighbour conflicts = 0, finished = True
+           max wait for forks = 7.8 ms
+RESULT   : CORRECT
+
+==============================================================================
+DINING PHILOSOPHERS [SYNCHRONIZED (waiter: N-1 at table)]  philosophers=5, meals each=3
+==============================================================================
+[Phil 0] hungry (meal 1)
+[Phil 0] EATING 1/3 forks(0,1) | fork-state=XX... (X=in use) | eating now=[0]
+[Phil 2] hungry (meal 1)
+[Phil 2] EATING 1/3 forks(2,3) | fork-state=XXXX. (X=in use) | eating now=[0, 2]
+[Phil 1] hungry (meal 1)
+[Phil 3] hungry (meal 1)
+[Phil 4] hungry (meal 1)
+[Phil 0] done meal 1, back to thinking
+[Phil 4] EATING 1/3 forks(4,0) | fork-state=XXXXX (X=in use) | eating now=[2, 4]
+[Phil 0] hungry (meal 2)
+[Phil 2] done meal 1, back to thinking
+[Phil 1] EATING 1/3 forks(1,2) | fork-state=XXX.X (X=in use) | eating now=[1, 4]
+[Phil 2] hungry (meal 2)
+[Phil 4] done meal 1, back to thinking
+[Phil 3] EATING 1/3 forks(3,4) | fork-state=.XXXX (X=in use) | eating now=[1, 3]
+[Phil 1] done meal 1, back to thinking
+[Phil 0] EATING 2/3 forks(0,1) | fork-state=XXXXX (X=in use) | eating now=[0, 3]
+[Phil 1] hungry (meal 2)
+[Phil 4] hungry (meal 2)
+[Phil 3] done meal 1, back to thinking
+[Phil 2] EATING 2/3 forks(2,3) | fork-state=XXXXX (X=in use) | eating now=[0, 2]
+[Phil 0] done meal 2, back to thinking
+[Phil 4] EATING 2/3 forks(4,0) | fork-state=X.XXX (X=in use) | eating now=[2, 4]
+[Phil 3] hungry (meal 2)
+[Phil 2] done meal 2, back to thinking
+[Phil 1] EATING 2/3 forks(1,2) | fork-state=XXX.X (X=in use) | eating now=[1, 4]
+[Phil 4] done meal 2, back to thinking
+[Phil 3] EATING 2/3 forks(3,4) | fork-state=.XXXX (X=in use) | eating now=[1, 3]
+[Phil 0] hungry (meal 3)
+[Phil 2] hungry (meal 3)
+[Phil 4] hungry (meal 3)
+[Phil 1] done meal 2, back to thinking
+[Phil 0] EATING 3/3 forks(0,1) | fork-state=XX.XX (X=in use) | eating now=[0, 3]
+[Phil 3] done meal 2, back to thinking
+[Phil 2] EATING 3/3 forks(2,3) | fork-state=XXXX. (X=in use) | eating now=[0, 2]
+[Phil 1] hungry (meal 3)
+[Phil 3] hungry (meal 3)
+[Phil 0] done meal 3, back to thinking
+[Phil 4] EATING 3/3 forks(4,0) | fork-state=X.XXX (X=in use) | eating now=[2, 4]
+[Phil 2] done meal 3, back to thinking
+[Phil 1] EATING 3/3 forks(1,2) | fork-state=XXX.X (X=in use) | eating now=[1, 4]
+[Phil 4] done meal 3, back to thinking
+[Phil 1] done meal 3, back to thinking
+[Phil 3] EATING 3/3 forks(3,4) | fork-state=...XX (X=in use) | eating now=[3]
+[Phil 3] done meal 3, back to thinking
+------------------------------------------------------------------------------
+EXPECTED : every philosopher eats 3 meals (15 total), 0 neighbours eating together, no deadlock
+ACTUAL   : meals per philosopher = [3, 3, 3, 3, 3], neighbour conflicts = 0, finished = True
+           max wait for forks = 7.7 ms
+RESULT   : CORRECT
+
+==============================================================================
+SUMMARY OF ALL RUNS
+==============================================================================
+Problem             Variant                           Sync?  Correct?  Details
+------------------------------------------------------------------------------------------------------------------------
+Producer-Consumer   UNSYNCHRONIZED                    no     NO        lost=6 dup=0 empty_reads=6 final_count=-2
+Producer-Consumer   SYNCHRONIZED                      yes    yes       lost=0 dup=0 empty_reads=0 final_count=0
+Readers-Writers     UNSYNCHRONIZED                    no     NO        final a=5 b=5 (exp 10) inconsistent=0 overlaps=27 max_writer_wait=0ms
+Readers-Writers     SYNCHRONIZED (reader preference)  yes    yes       final a=10 b=10 (exp 10) inconsistent=0 overlaps=0 max_writer_wait=10ms
+Readers-Writers     SYNCHRONIZED (fair / turnstile)   yes    yes       final a=10 b=10 (exp 10) inconsistent=0 overlaps=0 max_writer_wait=10ms
+Dining Philosophers UNSYNCHRONIZED (no fork locks)    no     NO        meals=[3, 3, 3, 3, 3] conflicts=11 max_wait=0ms
+Dining Philosophers Naive deadlock demo               no     yes       5/5 philosophers deadlocked until timeout
+Dining Philosophers SYNCHRONIZED (resource ordering)  yes    yes       meals=[3, 3, 3, 3, 3] conflicts=0 max_wait=8ms
+Dining Philosophers SYNCHRONIZED (waiter: N-1 at table)yes    yes       meals=[3, 3, 3, 3, 3] conflicts=0 max_wait=8ms
+
+All synchronized variants correct: YES
